@@ -7,36 +7,36 @@ import openai
 import numpy as np
 from config import *
 
-TOP_K = 10
+TOP_K = 2
 
 
 def get_answer_from_files(question, session_id, redis_index):
     logging.info(f"Getting answer for question: {question}")
 
     search_query_embedding = get_embedding(question, EMBEDDINGS_MODEL)
-
+    fields = ["id", "filename", "score"]
     try:
         base_query = f'*=>[KNN {TOP_K} @embedding $vector AS score]'
         query = (
             Query(base_query)
-            .return_fields(*["filename", "file_chunk_index"])
+            .return_fields(*fields)
             .sort_by("score")
-            .paging(0, TOP_K)
             .dialect(2)
         )
         params_dict = {"vector": np.array(search_query_embedding).astype(dtype=np.float32).tobytes()}
-        results = redis_index.ft(INDEX_NAME).search(query, params_dict)
+        results = redis_index.ft(INDEX_NAME).search(query, query_params=params_dict)
         files_string = ""
         file_text_dict = current_app.config["file_text_dict"]
 
         for i, result in enumerate(results.docs):
-            file_chunk_id = result.file_chunk_index
+            file_chunk_id = result.id
             filename = result.filename
             file_text = file_text_dict.get(file_chunk_id)
             file_string = f"###\n\"{filename}\"\n{file_text}\n"
-            if result.score < COSINE_SIM_THRESHOLD and i > 0:
+            score = float(result.score)
+            if score < COSINE_SIM_THRESHOLD and i > 0:
                 logging.info(
-                    f"[get_answer_from_files] score {result.score} is below threshold {COSINE_SIM_THRESHOLD} and i is {i}, breaking")
+                    f"[get_answer_from_files] score {score} is below threshold {COSINE_SIM_THRESHOLD} and i is {i}, breaking")
                 break
             files_string += file_string
 

@@ -94,11 +94,11 @@ def handle_file_string(filename, session_id, file_body_string, redis_index: redi
     for i, (text_chunk, embedding) in enumerate(text_embeddings):
         id = get_redis_id_for_file_chunk(session_id, filename, i)
         file_text_dict[id] = text_chunk
-        vector = {"embedding": embedding, "filename": filename, "file_chunk_index": i}
+        vector = {"id": id, "embedding": embedding, "filename": filename}
         logging.info(
             "[handle_file_string] Text chunk {}: {}".format(i, text_chunk))
         try:
-            vector["embedding"] = np.array(vector["embedding"], dtype=np.float32).tobytes()
+            vector["embedding"] = np.array(vector["embedding"]).astype(dtype=np.float32).tobytes()
             redis_index.hset(id, mapping=vector)
             logging.info(
                 "[handle_file_string] Upserted batch of embeddings for {}".format(filename))
@@ -106,7 +106,7 @@ def handle_file_string(filename, session_id, file_body_string, redis_index: redi
             logging.error(
                 "[handle_file_string] Error upserting batch of embeddings to Pinecone: {}".format(e))
             raise e
-        print(f"Loaded {redis_index.info()['db0']['keys']} documents in Redis search index with name: {INDEX_NAME}")
+    print(f"Loaded {redis_index.info()['db0']['keys']} documents in Redis search index with name: {INDEX_NAME}")
 
 # Compute the column-wise average of a list of lists
 def get_col_average_from_list_of_lists(list_of_lists):

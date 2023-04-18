@@ -15,7 +15,7 @@ logging.basicConfig(
 )
 
 def get_redis_id_for_file_chunk(session_id, filename, chunk_index):
-    return str(session_id+"-"+filename+"-"+str(chunk_index))
+    return str(INDEX_PREFIX+session_id+"-"+filename+"-"+str(chunk_index))
 
 def get_embedding(text, deployment_id):
     return openai.Embedding.create(input=text, deployment_id=deployment_id)['data'][0]['embedding']

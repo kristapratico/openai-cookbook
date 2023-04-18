@@ -40,11 +40,9 @@ def load_redis_index():
         IndexDefinition,
         IndexType
     )
-    from redis.commands.search.query import Query
     from redis.commands.search.field import (
         TextField,
         VectorField,
-        NumericField
     )
 
     # Connect to Redis
@@ -54,8 +52,8 @@ def load_redis_index():
         password=REDIS_PASSWORD
     )
 
+    id = TextField(name="id")
     filename = TextField(name="filename")
-    file_chunk_index = NumericField(name="file_chunk_index")
     embedding = VectorField("embedding",
         "FLAT", {
             "TYPE": "FLOAT32",
@@ -63,7 +61,7 @@ def load_redis_index():
             "DISTANCE_METRIC": DISTANCE_METRIC,
         }
     )
-    fields = [filename, embedding, file_chunk_index]
+    fields = [id, filename, embedding]
 
     # Check if index exists
     try:
@@ -73,7 +71,7 @@ def load_redis_index():
         # Create RediSearch Index
         redis_client.ft(INDEX_NAME).create_index(
             fields = fields,
-            definition = IndexDefinition(index_type=IndexType.HASH)
+            definition = IndexDefinition(prefix=INDEX_PREFIX, index_type=IndexType.HASH)
     )
     return redis_client
 
